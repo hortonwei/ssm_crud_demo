@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.0.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+
+
+	<context:component-scan base-package="com.hor">
+		<context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
+	</context:component-scan>
+
+	<context:property-placeholder location="classpath:jdbc.properties"/>
+<!-- 配置druid数据源 -->
+	<bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource">
+		<property name="driverClassName" value="${jdbc.driver}"></property>
+		<property name="url" value="${jdbc.url}"></property>
+		<property name="username" value="${jdbc.username}"></property>
+		<property name="password" value="${jdbc.password}"></property>
+	</bean>
+	
+	<!-- 配置spring管理SqlSession的方式，即spring所提供的的SqlSession对象 -->
+	<bean class="org.mybatis.spring.SqlSessionFactoryBean">
+		<!-- 引用数据源 -->
+		<property name="dataSource" ref="dataSource"></property>
+		<!-- 设置映射文件的路径 -->
+		<property name="mapperLocations" value="classpath:com/hor/mapper/*.xml"></property>
+		<!-- 将制定的包下的类设置类型别名 -->
+		<property name="typeAliasesPackage" value="com.hor.bean"></property>
+		<!-- 设置mybatis的核心配置文件 -->
+		<property name="configLocation" value="classpath:mybatis-config.xml"></property>
+	</bean>
+	
+	<!-- spring管理mybatis面向接口编程，即在所设置的包下所有的mapper接口都会通过SqlSession的getMapper()获取其代理实现类 -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="basePackage" value="com.hor.mapper"></property>
+	</bean>
+	
+		<!-- 配置事务管理器对象 -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	<!-- 开启事务的注解驱动 -->
+	<!-- <tx:annotation-driven transaction-manager="transactionManager"/> -->
+
+	<!-- 设置事务通知，更进一步的设置不同方法处理事务时的细节（隔离级别、传播级别、只读、回滚策略、超时时间） -->
+	<tx:advice id="tx" transaction-manager="transactionManager">
+		<tx:attributes>
+			<tx:method name="insert*"/>
+			<tx:method name="delete*"/>
+			<tx:method name="update*"/>
+			<tx:method name="select*" read-only="true"/>
+			<tx:method name="get*" read-only="true"/>
+			<tx:method name="*"/>
+		</tx:attributes>
+	</tx:advice>
+	
+	<!-- 配置aop，将设置的事务通知和切入点表达式进行关联 -->
+	<aop:config>
+		<aop:pointcut expression="execution(* com.hor.service.impl.*.*(..))" id="cut"/>
+		<aop:advisor advice-ref="tx" pointcut-ref="cut"/>
+	</aop:config>
+</beans>
