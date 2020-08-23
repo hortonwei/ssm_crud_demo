@@ -1,3 +1,2 @@
-# ssm_crud_demo
-ssm_crud_demo
-111
+网上书城项目练习
+Spring + SpringMVC + MyBatis
